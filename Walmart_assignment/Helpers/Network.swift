@@ -10,15 +10,27 @@ import Network
 
 class NetworkMonitor {
     static let shared = NetworkMonitor()
-    private let monitor = NWPathMonitor()
+    private var monitor: NWPathMonitor?
     private let queue = DispatchQueue.global()
-
+    
     var isConnected: Bool = false
-
+    
     private init() {
-        monitor.pathUpdateHandler = { path in
-            self.isConnected = path.status == .satisfied
+        startMonitoring()
+    }
+    
+    func startMonitoring() {
+        monitor = NWPathMonitor()
+        monitor?.pathUpdateHandler = { [weak self] path in
+            self?.isConnected = (path.status == .satisfied)
+            print("Network status: \(path.status == .satisfied ? "Connected" : "Disconnected")")
         }
-        monitor.start(queue: queue)
+        monitor?.start(queue: queue)
+    }
+    
+    
+    func stopMonitoring() {
+        monitor?.cancel()
+        monitor = nil
     }
 }

@@ -71,8 +71,8 @@ class NetworkService: NSObject {
                 }
                 do {
                     let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                    print(json)
-                    
+//                    print(json)
+                    completionHandler(json, 1)
                 } catch {
                     print("failed to Get data from Server with error:%@", error)
                     Helper.sharedInstance.errorAlertView(controller: controller, error: error as NSError)
@@ -80,6 +80,5 @@ class NetworkService: NSObject {
             }).resume()
         }
     }
-    
-    
 }
+

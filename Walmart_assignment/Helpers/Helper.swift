@@ -43,6 +43,56 @@ class Helper : NSObject {
         })
     }
     
+    // MARK: - Check Date Format
+    func checkDateFormat(dateString: String,outputFormat: String) -> String? {
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd hh:mm:ss"  // input Format 1
+        dateFormatter.timeZone = NSTimeZone(name: "UTC") as TimeZone?
+        
+        if dateFormatter.date(from: dateString) != nil {
+            let formattedDate = dateFormatter.date(from:dateString)!
+            let localDate = formattedDate.toLocalTime()
+            dateFormatter.dateFormat = outputFormat // Output Formated
+            return dateFormatter.string(from: localDate)
+        }
+        
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'hh:mm:ss.SSSS"  // input Format 2
+        if dateFormatter.date(from: dateString) != nil {
+            let formattedDate = dateFormatter.date(from:dateString)!
+            let localDate = formattedDate.toLocalTime()
+            dateFormatter.dateFormat = outputFormat // Output Formated
+            return dateFormatter.string(from: localDate)
+        }
+        
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"  // input Format 3
+        if dateFormatter.date(from: dateString) != nil {
+            let formattedDate = dateFormatter.date(from:dateString)!
+            let localDate = formattedDate.toLocalTime()
+            dateFormatter.dateFormat = outputFormat // Output Formated
+            return dateFormatter.string(from: localDate)
+        }
+        
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"  // input Format 4
+        if dateFormatter.date(from: dateString) != nil {
+            let formattedDate = dateFormatter.date(from:dateString)!
+            let localDate = formattedDate.toLocalTime()
+            dateFormatter.dateFormat = outputFormat // Output Formated
+            return dateFormatter.string(from: localDate)
+        }
+        
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.S"   // input Format 5
+        if dateFormatter.date(from: dateString) != nil {
+            let formattedDate = dateFormatter.date(from:dateString)!
+            dateFormatter.dateFormat = outputFormat // Output Formated
+            let localDate = formattedDate.toLocalTime()
+            return dateFormatter.string(from: localDate)
+        }
+        
+        // invalid format
+        return nil
+    }
+    
 }
 
 struct AlertType {
@@ -52,4 +102,14 @@ struct AlertType {
     static let kSuccess : String = "Success"
     static let kFailure : String = "Failure"
 }
+
+extension Date {
+    // Convert UTC (or GMT) to local time
+    func toLocalTime() -> Date {
+        let timezone = TimeZone.current
+        let seconds = TimeInterval(timezone.secondsFromGMT(for: self))
+        return Date(timeInterval: seconds, since: self)
+    }
+}
+
 

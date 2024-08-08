@@ -9,35 +9,26 @@ import Foundation
 
 struct ImageDataModel : Codable{
     let date : String?
-    let start_date : String?
-    let end_date : String?
-    let count : Int?
-    let thumbs : Bool?
-    let api_key : String?
+    let hdurl : String?
+    let url : String?
     let title : String?
-    let description : String?
+    let explanation : String?
 
     enum CodingKeys : String, CodingKey{
         case date
-        case start_date
-        case end_date
-        case count
-        case thumbs
-        case api_key
+        case hdurl
+        case url
         case title
-        case description
+        case explanation
     }
     
     init(from decoder : Decoder) throws{
         let values = try decoder.container(keyedBy: CodingKeys.self)
         date = try values.decodeIfPresent(String.self, forKey: .date)
-        start_date = try values.decodeIfPresent(String.self, forKey: .start_date)
-        end_date = try values.decodeIfPresent(String.self, forKey: .end_date)
-        count = try values.decodeIfPresent(Int.self, forKey: .count)
-        thumbs = try values.decodeIfPresent(Bool.self, forKey: .thumbs)
-        api_key = try values.decodeIfPresent(String.self, forKey: .api_key)
+        hdurl = try values.decodeIfPresent(String.self, forKey: .hdurl)
+        url = try values.decodeIfPresent(String.self, forKey: .url)
         title = try values.decodeIfPresent(String.self, forKey: .title)
-        description = try values.decodeIfPresent(String.self, forKey: .description)
+        explanation = try values.decodeIfPresent(String.self, forKey: .explanation)
     }
 }
 
