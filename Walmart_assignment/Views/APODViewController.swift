@@ -41,42 +41,76 @@ class APODViewController: UIViewController {
     
     //MARK: - Local DB Support check
     func checkLocalDBSupport(isNetworkAvailable: Bool) {
-        // check data in locals
-        if let imageData: ImageDataEntity = LocalDataModel.shared.fetchImageDetailsFromDB() {
-            if let isVisited = imageData.value(forKey: "isVisited") as? Bool, isVisited == true {
-                if let base64String = imageData.value(forKey: "imageData") as? String {
-                    if let image = Helper.sharedInstance.convertBase64StringToImage(imageBase64String: base64String) {
-                        DispatchQueue.main.async {
-                            self.imageViewAPOD.image = image
-                        }
-                    }
+        // if Network not there and user already seen image for today then show from DB w/o hitting api
+        if !isNetworkAvailable {
+            let imageData: [ImageDataEntity] = LocalDataModel.shared.fetchImageDetailsFromDB()
+            
+            if let isDayToday = imageData.last?.value(forKey: "date") as? String, isDayToday.elementsEqual( Helper.sharedInstance.getDateTimeStringFromDate(Date())) {
+                
+                if let isVisited = imageData.last?.value(forKey: "isVisited") as? Bool, isVisited == true {
+                    
+                    fetchExistingDataAndUpdateUI(imageData)
                 }
-                if let title = imageData.value(forKey: "title") as? String {
-                    DispatchQueue.main.async {
-                        self.labelTitle.text = title
-                    }
+            }else {
+                // if Network not there and user has not seen image for today then show the alert with last image
+                let alert = UIAlertController(title: AlertType.kAlert, message: ConnectionFeedbackMessage.kNotConnectedToInternet, preferredStyle: .alert)
+                let alertAction = UIAlertAction(title: "OK", style: .default) { (action) in
+                    
+                    self.fetchExistingDataAndUpdateUI(imageData)
                 }
-                if let desc = imageData.value(forKey: "explanation") as? String {
-                    DispatchQueue.main.async {
-                        self.textViewDescription.text = desc
-                    }
+                
+                alert.addAction(alertAction)
+                DispatchQueue.main.async {
+                    self.present(alert, animated: true, completion: nil)
                 }
             }
         }else{
-            if isNetworkAvailable {
+            let imageData: [ImageDataEntity] = LocalDataModel.shared.fetchImageDetailsFromDB()
+            
+            if let isDayToday = imageData.last?.value(forKey: "date") as? String, isDayToday.elementsEqual( Helper.sharedInstance.getDateTimeStringFromDate(Date())) {
+            
+                if let isVisited = imageData.last?.value(forKey: "isVisited") as? Bool, isVisited == true {
+                    
+                    fetchExistingDataAndUpdateUI(imageData)
+                }else{
+                    getImageDataFromAPI()
+                }
+            }else {
                 getImageDataFromAPI()
-            }else{
-                Helper.sharedInstance.internetNotAvailableAlertView(controller: self)
+            }
+            
+        }
+    }
+    
+    //Fetch saved data and reflect in UI
+    func fetchExistingDataAndUpdateUI(_ imageData: [ImageDataEntity]) {
+        if let base64String = imageData.last?.value(forKey: "imageData") as? String {
+            if let image = Helper.sharedInstance.convertBase64StringToImage(imageBase64String: base64String) {
+                DispatchQueue.main.async {
+                    self.imageViewAPOD.image = image
+                }
+            }
+        }
+        if let title = imageData.last?.value(forKey: "title") as? String {
+            DispatchQueue.main.async {
+                self.labelTitle.text = title
+            }
+        }
+        if let desc = imageData.last?.value(forKey: "explanation") as? String {
+            DispatchQueue.main.async {
+                self.textViewDescription.text = desc
             }
         }
     }
     
+    //MARK:- Get Image data from API
     func getImageDataFromAPI(){
         imageDataViewModel.getAPODImageData(self, APIKey)
         
         getImageDetailsAPiObserver()
     }
     
+    //Image API Observer
     func getImageDetailsAPiObserver(){
         self.imageDataViewModel.isSuccess.bind{ response in
             
@@ -103,6 +137,7 @@ class APODViewController: UIViewController {
         }
     }
 
+    //Fetch Image from URL
     func fetchImage(from url: URL, completion: @escaping (Data?) -> Void) {
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
@@ -113,6 +148,7 @@ class APODViewController: UIViewController {
         }.resume()
     }
 
+    //Load Image on UI
     func loadImage(from url: URL, into imageView: UIImageView, loader: UIActivityIndicatorView) {
         DispatchQueue.main.async {
             loader.startAnimating()

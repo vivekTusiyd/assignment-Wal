@@ -81,7 +81,7 @@ class Helper : NSObject {
             return dateFormatter.string(from: localDate)
         }
         
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.S"   // input Format 5
+        dateFormatter.dateFormat = "yyyy-MM-dd"   // input Format 5
         if dateFormatter.date(from: dateString) != nil {
             let formattedDate = dateFormatter.date(from:dateString)!
             dateFormatter.dateFormat = outputFormat // Output Formated
@@ -91,6 +91,13 @@ class Helper : NSObject {
         
         // invalid format
         return nil
+    }
+    
+    //date formatter
+    func getDateTimeStringFromDate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return dateFormatter.string(from: date)
     }
     
     //JPEG

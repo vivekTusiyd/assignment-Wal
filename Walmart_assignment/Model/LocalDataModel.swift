@@ -25,6 +25,8 @@ class LocalDataModel: NSObject {
     func insertUpdateImageDetailsToDB(imageDict : NSDictionary,base64imageData: String) {
         
         let fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest.init(entityName: "ImageDataEntity")
+        fetchRequest.predicate = NSPredicate(format: "date = %@", Helper.sharedInstance.getDateTimeStringFromDate(Date()))
+
         do
         {
             let imageData = try managedContext.fetch(fetchRequest)
@@ -46,6 +48,7 @@ class LocalDataModel: NSObject {
                 let imageData = NSManagedObject(entity: imageEntity, insertInto: managedContext)
                 imageData.setValue(false, forKey: "isVisited")
                 imageData.setValue(((imageDict["date"] as? String) ?? ""), forKey: "date")
+                
                 imageData.setValue(((imageDict["title"] as? String) ?? ""), forKey: "title")
                 imageData.setValue(((imageDict["explanation"] as? String) ?? ""), forKey: "explanation")
                 imageData.setValue(base64imageData, forKey: "imageData")
@@ -64,16 +67,16 @@ class LocalDataModel: NSObject {
     }
 
     
-    func fetchImageDetailsFromDB() -> ImageDataEntity? {
+    func fetchImageDetailsFromDB() -> [ImageDataEntity] {
 
         let fetchRequest: NSFetchRequest<ImageDataEntity> = ImageDataEntity.fetchRequest()
 
         do {
             let result = try managedContext.fetch(fetchRequest)
-            return result.first
+            return result
         } catch {
             print("Failed")
-            return nil
+            return []
         }
     }
     
