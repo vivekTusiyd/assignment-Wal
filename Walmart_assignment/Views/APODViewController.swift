@@ -15,23 +15,60 @@ class APODViewController: UIViewController {
     
     var imageDataViewModel : APODViewModel = APODViewModel()
     let loader = UIActivityIndicatorView(style: .large)
-
+    
+   
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-                
+        NetworkMonitor.shared.startMonitoring()
+
         view.addSubview(loader)
         loader.center = view.center
         
+        //Due to late response from Network library, added 1 sec delay to fetch correct network data  
+        sleep(1)
+        
         //First check if internet is connected or not
-//        if !NetworkMonitor.shared.isConnected {
-//            Helper.sharedInstance.internetNotAvailableAlertView(controller: self)
-//            
-//            // check data in locals
-//        }else{
+        if !NetworkMonitor.shared.isConnected {
+            
+            //check if data is there in local db
+            checkLocalDBSupport(isNetworkAvailable: false)
+        }else{
             //Check if already open the image then don't hit the api
-            getImageDataFromAPI()
-//        }
+            checkLocalDBSupport(isNetworkAvailable: true)
+        }
+    }
+    
+    //MARK: - Local DB Support check
+    func checkLocalDBSupport(isNetworkAvailable: Bool) {
+        // check data in locals
+        if let imageData: ImageDataEntity = LocalDataModel.shared.fetchImageDetailsFromDB() {
+            if let isVisited = imageData.value(forKey: "isVisited") as? Bool, isVisited == true {
+                if let base64String = imageData.value(forKey: "imageData") as? String {
+                    if let image = Helper.sharedInstance.convertBase64StringToImage(imageBase64String: base64String) {
+                        DispatchQueue.main.async {
+                            self.imageViewAPOD.image = image
+                        }
+                    }
+                }
+                if let title = imageData.value(forKey: "title") as? String {
+                    DispatchQueue.main.async {
+                        self.labelTitle.text = title
+                    }
+                }
+                if let desc = imageData.value(forKey: "explanation") as? String {
+                    DispatchQueue.main.async {
+                        self.textViewDescription.text = desc
+                    }
+                }
+            }
+        }else{
+            if isNetworkAvailable {
+                getImageDataFromAPI()
+            }else{
+                Helper.sharedInstance.internetNotAvailableAlertView(controller: self)
+            }
+        }
     }
     
     func getImageDataFromAPI(){
@@ -86,14 +123,12 @@ class APODViewController: UIViewController {
                 if let data = data {
                     imageView.image = UIImage(data: data)
                     
-                    
+                    let base64String = Helper.sharedInstance.convertImageToBase64String(img: imageView.image ?? UIImage())
+                    LocalDataModel.shared.insertUpdateImageDetailsToDB(imageDict: self.imageDataViewModel.imageDataDictionary.value! as NSDictionary, base64imageData: base64String)
                 }
             }
         }
     }
-
-    
-    
 
     
 
