@@ -11,7 +11,8 @@ class APODViewController: UIViewController {
 
     @IBOutlet weak var labelTitle: UILabel!
     @IBOutlet weak var imageViewAPOD: UIImageView!
-    @IBOutlet weak var textViewDescription: UITextView!
+    @IBOutlet weak var imageViewAPODHeight: NSLayoutConstraint!
+    @IBOutlet weak var labelDescription: UILabel!
     
     var imageDataViewModel : APODViewModel = APODViewModel()
     let loader = UIActivityIndicatorView(style: .large)
@@ -22,10 +23,10 @@ class APODViewController: UIViewController {
         // Do any additional setup after loading the view.
         NetworkMonitor.shared.startMonitoring()
 
-        view.addSubview(loader)
-        loader.center = view.center
+        imageViewAPOD.addSubview(loader)
+        loader.center = imageViewAPOD.center
         
-        //Due to late response from Network library, added 1 sec delay to fetch correct network data  
+        //Added 1 sec delay to fetch correct connection status before calling the api
         sleep(1)
         
         //First check if internet is connected or not
@@ -52,11 +53,11 @@ class APODViewController: UIViewController {
                     fetchExistingDataAndUpdateUI(imageData)
                 }
             }else {
-                // if Network not there and user has not seen image for today then show the alert with last image
+                // if Network not there and user has not seen APOD today then show the alert with last image or show error message if DB is empty.
                 let alert = UIAlertController(title: AlertType.kAlert, message: ConnectionFeedbackMessage.kNotConnectedToInternet, preferredStyle: .alert)
                 let alertAction = UIAlertAction(title: "OK", style: .default) { (action) in
                     
-                    self.fetchExistingDataAndUpdateUI(imageData)
+                    self.fetchExistingDataAndUpdateUI(imageData, true)
                 }
                 
                 alert.addAction(alertAction)
@@ -83,7 +84,7 @@ class APODViewController: UIViewController {
     }
     
     //Fetch saved data and reflect in UI
-    func fetchExistingDataAndUpdateUI(_ imageData: [ImageDataEntity]) {
+    func fetchExistingDataAndUpdateUI(_ imageData: [ImageDataEntity], _ isExtremeEdgeCase: Bool = false) {
         if let base64String = imageData.last?.value(forKey: "imageData") as? String {
             if let image = Helper.sharedInstance.convertBase64StringToImage(imageBase64String: base64String) {
                 DispatchQueue.main.async {
@@ -98,19 +99,24 @@ class APODViewController: UIViewController {
         }
         if let desc = imageData.last?.value(forKey: "explanation") as? String {
             DispatchQueue.main.async {
-                self.textViewDescription.text = desc
+                self.labelDescription.text = desc
             }
+        }
+        
+        //Show alert for extreme edge case
+        if isExtremeEdgeCase {
+            Helper.sharedInstance.internalServerErrorAlertView(controller: self)
         }
     }
     
-    //MARK:- Get Image data from API
+    //MARK:- Get Image Details from API
     func getImageDataFromAPI(){
         imageDataViewModel.getAPODImageData(self, APIKey)
         
         getImageDetailsAPiObserver()
     }
     
-    //Image API Observer
+    //Image Details API Observer
     func getImageDetailsAPiObserver(){
         self.imageDataViewModel.isSuccess.bind{ response in
             
@@ -124,11 +130,14 @@ class APODViewController: UIViewController {
                     
                     DispatchQueue.main.async {
                         self.labelTitle.text = self.imageDataViewModel.imageDataDictionary.value?["title"] as? String
-                        self.textViewDescription.text = self.imageDataViewModel.imageDataDictionary.value?["explanation"] as? String
+                        self.labelDescription.text = self.imageDataViewModel.imageDataDictionary.value?["explanation"] as? String
                     }
                 }
                 break
             case false:
+                //if the api fails then will be showing failure alert
+                Helper.sharedInstance.internalServerErrorAlertView(controller: self)
+                
                 break
             default:
                 break
@@ -148,7 +157,7 @@ class APODViewController: UIViewController {
         }.resume()
     }
 
-    //Load Image on UI
+    //MARK: - Load Image on UI
     func loadImage(from url: URL, into imageView: UIImageView, loader: UIActivityIndicatorView) {
         DispatchQueue.main.async {
             loader.startAnimating()
@@ -157,16 +166,28 @@ class APODViewController: UIViewController {
             DispatchQueue.main.async {
                 loader.stopAnimating()
                 if let data = data {
-                    imageView.image = UIImage(data: data)
                     
+                    let imageAPOD:UIImage = UIImage(data: data)!
+                    
+                    //Calculate image height proportionally based on the image from server
+                    let imageHeight = imageAPOD.getHeightOfImage
+                    let imageWidth = imageAPOD.getWidthOfImage
+                    
+                    if(imageHeight > imageWidth)
+                    {
+                        let proportionalWidthDifference = imageView.frame.size.width/imageWidth
+                        let proportionalHeight = proportionalWidthDifference*imageHeight
+                        self.imageViewAPODHeight.constant = proportionalHeight
+                    }
+                    
+                    imageView.image = UIImage(data: data)
+
+                    //Save data in local DB
                     let base64String = Helper.sharedInstance.convertImageToBase64String(img: imageView.image ?? UIImage())
                     LocalDataModel.shared.insertUpdateImageDetailsToDB(imageDict: self.imageDataViewModel.imageDataDictionary.value! as NSDictionary, base64imageData: base64String)
                 }
             }
         }
     }
-
-    
-
 }
 
